@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>数学小英雄</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Comic Sans MS', 'Chalkboard SE', sans-serif;
+  background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+#app { width: 100%; max-width: 480px; position: relative; }
+.screen {
+  display: none;
+  width: 100%;
+  min-height: 700px;
+  padding: 20px;
+}
+.screen.active { display: block; }
+
+/* 首页 */
+#home {
+  background: linear-gradient(180deg, #0a1628, #1a237e);
+  border-radius: 24px;
+  padding: 30px 20px;
+  text-align: center;
+  box-shadow: 0 0 40px rgba(33,150,243,0.3);
+  border: 2px solid rgba(33,150,243,0.3);
+}
+.title {
+  font-size: 36px;
+  color: #fff;
+  text-shadow: 0 0 20px #2196F3, 0 0 40px #2196F3;
+  margin-bottom: 5px;
+  letter-spacing: 4px;
+}
+.subtitle {
+  font-size: 14px;
+  color: #90caf9;
+  margin-bottom: 25px;
+}
+.warning {
+  background: rgba(255,152,0,0.15);
+  border: 1px solid #ff9800;
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 25px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.warning-icon { font-size: 28px; }
+.warning-text {
+  color: #ffcc80;
+  font-size: 13px;
+  line-height: 1.6;
+  text-align: left;
+}
+.level-grid { display: flex; flex-direction: column; gap: 14px; margin-bottom: 25px; }
+.level-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-radius: 16px;
+  border: 2px solid rgba(255,255,255,0.15);
+  background: linear-gradient(135deg, rgba(33,150,243,0.2), rgba(0,188,212,0.1));
+  cursor: pointer;
+  transition: all .3s;
+  color: #fff;
+  font-size: 18px;
+}
+.level-btn:hover { transform: scale(1.02); border-color: #2196F3; }
+.level-btn.locked { opacity: 0.5; cursor: not-allowed; }
+.level-btn.locked:hover { transform: none; }
+.level-btn .stars { color: #ffc107; font-size: 14px; }
+.level-num { font-weight: bold; font-size: 20px; }
+.level-enemies { font-size: 13px; color: #90caf9; }
+
+/* 游戏页面 */
+#game {
+  background: linear-gradient(180deg, #0a1628, #1a237e);
+  border-radius: 24px;
+  padding: 20px;
+  min-height: 700px;
+  box-shadow: 0 0 40px rgba(33,150,243,0.3);
+  border: 2px solid rgba(33,150,243,0.3);
+  position: relative;
+  overflow: hidden;
+}
+.game-hud {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  position: relative;
+  z-index: 10;
+}
+.hud-level { color: #90caf9; font-size: 16px; font-weight: bold; }
+.hud-hp { display: flex; align-items: center; gap: 6px; color: #fff; font-size: 14px; }
+.hp-bar-bg {
+  width: 120px; height: 14px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 7px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+.hp-bar-fill {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #f44336, #ff9800, #4caf50);
+  border-radius: 7px;
+  transition: width 0.5s;
+}
+.hud-progress { color: #90caf9; font-size: 14px; }
+
+/* 天空背景 - 星星 */
+.stars-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden; z-index: 0; }
+.star {
+  position: absolute;
+  width: 2px; height: 2px;
+  background: #fff;
+  border-radius: 50%;
+  animation: twinkle 2s infinite;
+}
+@keyframes twinkle {
+  0%,100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+/* 敌人飞机 */
+.enemy-area {
+  position: relative;
+  height: 250px;
+  margin: 10px 0;
+  z-index: 5;
+}
+.enemy-plane {
+  position: absolute;
+  font-size: 30px;
+  transition: all 0.3s;
+  cursor: default;
+  animation: flyIn 0.5s ease-out;
+  user-select: none;
+}
+@keyframes flyIn {
+  from { transform: translateY(-60px) scale(0); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+.enemy-plane.hit {
+  animation: explode 0.5s forwards;
+}
+@keyframes explode {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(2); opacity: 0.5; }
+  100% { transform: scale(0); opacity: 0; }
+}
+
+/* 数学题区域 */
+.question-area {
+  background: rgba(0,0,0,0.4);
+  border-radius: 16px;
+  padding: 20px;
+  text-align: center;
+  position: relative;
+  z-index: 10;
+  border: 1px solid rgba(33,150,243,0.3);
+}
+.question {
+  color: #fff;
+  font-size: 32px;
+  margin-bottom: 16px;
+  font-weight: bold;
+  text-shadow: 0 0 10px rgba(33,150,243,0.5);
+}
+.options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.option-btn {
+  padding: 12px;
+  border-radius: 12px;
+  border: 2px solid rgba(255,255,255,0.15);
+  background: rgba(33,150,243,0.15);
+  color: #fff;
+  font-size: 22px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.option-btn:hover { background: rgba(33,150,243,0.35); transform: scale(1.05); }
+.option-btn:active { transform: scale(0.95); }
+.option-btn.correct { background: #4caf50; border-color: #4caf50; }
+.option-btn.wrong { background: #f44336; border-color: #f44336; animation: shake 0.3s; }
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  25% { transform: translateX(-8px); }
+  75% { transform: translateX(8px); }
+}
+.option-btn:disabled { cursor: not-allowed; opacity: 0.7; }
+
+/* 过关庆祝 */
+#celebration {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.85);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  flex-direction: column;
+}
+#celebration.show { display: flex; }
+.celebration-content { text-align: center; }
+.celebration-title {
+  font-size: 48px;
+  color: #ffc107;
+  text-shadow: 0 0 30px #ffc107;
+  animation: bounce 0.6s ease;
+  margin-bottom: 10px;
+}
+@keyframes bounce {
+  0% { transform: scale(0); }
+  50% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+.celebration-sub { color: #fff; font-size: 20px; margin-bottom: 20px; }
+.next-btn {
+  padding: 14px 40px;
+  border-radius: 50px;
+  border: none;
+  background: linear-gradient(135deg, #2196F3, #00bcd4);
+  color: #fff;
+  font-size: 20px;
+  cursor: pointer;
+  transition: all .3s;
+  font-weight: bold;
+}
+.next-btn:hover { transform: scale(1.1); }
+
+/* 通关视频 */
+#victory {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: linear-gradient(180deg, #0a1628, #1a237e);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  flex-direction: column;
+  overflow: hidden;
+}
+#victory.show { display: flex; }
+.victory-canvas {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+}
+.victory-text {
+  position: relative;
+  z-index: 10;
+  text-align: center;
+}
+.victory-title {
+  font-size: 42px;
+  color: #ffc107;
+  text-shadow: 0 0 30px #ffc107, 0 0 60px #ff9800;
+  animation: bounce 0.8s ease;
+  margin-bottom: 10px;
+}
+.victory-sub {
+  color: #90caf9;
+  font-size: 18px;
+}
+.restart-btn {
+  margin-top: 20px;
+  padding: 14px 40px;
+  border-radius: 50px;
+  border: none;
+  background: linear-gradient(135deg, #ff9800, #f44336);
+  color: #fff;
+  font-size: 20px;
+  cursor: pointer;
+  transition: all .3s;
+  font-weight: bold;
+  position: relative;
+  z-index: 10;
+}
+.restart-btn:hover { transform: scale(1.1); }
+
+/* 彩纸粒子 */
+.confetti-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1001; }
+.confetti {
+  position: absolute;
+  width: 10px; height: 10px;
+  top: -10px;
+  animation: confettiFall linear forwards;
+}
+@keyframes confettiFall {
+  to { top: 110vh; transform: rotate(720deg); }
+}
+
+/* 敌机剩余显示 */
+.plane-count {
+  position: absolute;
+  bottom: 5px;
+  right: 5px;
+  color: rgba(255,255,255,0.5);
+  font-size: 12px;
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- 首页 -->
+  <div id="home" class="screen active">
+    <div class="title">✈️ 数学小英雄</div>
+    <div class="subtitle">消灭敌人飞机，保卫蓝天！</div>
+    <div class="warning">
+      <span class="warning-icon">⚠️</span>
+      <span class="warning-text">防沉迷提示：本游戏适合6-8岁儿童，建议每次游戏不超过30分钟，每天不超过1小时。请注意保护视力，合理安排学习与休息时间。</span>
+    </div>
+    <div class="level-grid" id="levelGrid"></div>
+    <div style="color:#64b5f6;font-size:13px;">💡 答对题目即可击落敌机！</div>
+  </div>
+
+  <!-- 游戏 -->
+  <div id="game" class="screen">
+    <div class="stars-bg" id="starsBg"></div>
+    <div class="game-hud">
+      <div class="hud-level" id="hudLevel">第 1 关</div>
+      <div class="hud-hp">
+        ❤️
+        <div class="hp-bar-bg"><div class="hp-bar-fill" id="hpBar"></div></div>
+        <span id="hpText">100</span>
+      </div>
+      <div class="hud-progress" id="hudProgress">0/30</div>
+    </div>
+    <div class="enemy-area" id="enemyArea"><div class="plane-count" id="planeCount">✈️ × 30</div></div>
+    <div class="question-area">
+      <div class="question" id="questionText">3 + 5 = ?</div>
+      <div class="options" id="optionsContainer"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 过关庆祝 -->
+<div id="celebration">
+  <div class="celebration-content">
+    <div class="celebration-title">🎉 过关！</div>
+    <div class="celebration-sub" id="celebrationSub">太棒了！你消灭了所有敌人！</div>
+    <button class="next-btn" id="nextBtn">下一关 ➜</button>
+  </div>
+  <div class="confetti-container" id="confettiBox"></div>
+</div>
+
+<!-- 通关视频 -->
+<div id="victory">
+  <canvas class="victory-canvas" id="victoryCanvas"></canvas>
+  <div class="victory-text">
+    <div class="victory-title">🏆 通关！</div>
+    <div class="victory-sub">你是最强的数学小英雄！🎊</div>
+    <button class="restart-btn" id="restartBtn">再玩一次 🔄</button>
+  </div>
+</div>
+
+<script>
+// ========== 游戏状态 ==========
+const TOTAL_LEVELS = 5;
+const ENEMIES_PER_LEVEL = 30;
+const MAX_HP = 100;
+
+let state = {
+  currentLevel: 1,
+  currentEnemy: 0,
+  hp: MAX_HP,
+  stars: [false, false, false, false, false], // false = no star yet
+  isAnswering: false
+};
+
+// ========== 数学题生成 ==========
+function genQuestion() {
+  const ops = ['+', '-'];
+  const op = ops[Math.floor(Math.random() * 2)];
+  let a, b, answer;
+  if (op === '+') {
+    a = Math.floor(Math.random() * 10) + 1;
+    b = Math.floor(Math.random() * 10) + 1;
+    answer = a + b;
+  } else {
+    a = Math.floor(Math.random() * 10) + 11; // 11-20
+    b = Math.floor(Math.random() * a) + 1;
+    answer = a - b;
+  }
+  // 生成4个选项
+  let options = [answer];
+  while (options.length < 4) {
+    let fake = answer + (Math.floor(Math.random() * 9) - 4);
+    if (fake < 0) fake = answer + Math.floor(Math.random() * 5) + 1;
+    if (!options.includes(fake)) options.push(fake);
+  }
+  options.sort(() => Math.random() - 0.5);
+  return { question: `${a} ${op} ${b} = ?`, answer, options };
+}
+
+// ========== 渲染敌机 ==========
+function renderEnemies() {
+  const area = document.getElementById('enemyArea');
+  // 清除旧敌机（保留plane-count）
+  area.querySelectorAll('.enemy-plane').forEach(e => e.remove());
+  
+  const remaining = ENEMIES_PER_LEVEL - state.currentEnemy;
+  const count = Math.min(remaining, 12);
+  const areaW = area.offsetWidth || 400;
+  const areaH = area.offsetHeight || 200;
+  
+  for (let i = 0; i < count; i++) {
+    const plane = document.createElement('div');
+    plane.className = 'enemy-plane';
+    plane.textContent = '🛩️';
+    plane.style.left = (20 + Math.random() * (areaW - 80)) + 'px';
+    plane.style.top = (10 + Math.random() * (areaH - 70)) + 'px';
+    plane.style.fontSize = (24 + Math.random() * 16) + 'px';
+    plane.style.transform = `rotate(${Math.random() * 20 - 10}deg)`;
+    plane.style.animationDelay = (Math.random() * 0.5) + 's';
+    area.appendChild(plane);
+  }
+  document.getElementById('planeCount').textContent = `✈️ × ${remaining}`;
+}
+
+// ========== 显示题目 ==========
+function showQuestion() {
+  const q = genQuestion();
+  state.currentQ = q;
+  document.getElementById('questionText').textContent = q.question;
+  const container = document.getElementById('optionsContainer');
+  container.innerHTML = '';
+  q.options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.textContent = opt;
+    btn.onclick = () => handleAnswer(btn, opt, q.answer);
+    container.appendChild(btn);
+  });
+  state.isAnswering = true;
+}
+
+// ========== 处理答案 ==========
+function handleAnswer(btn, selected, answer) {
+  if (!state.isAnswering) return;
+  state.isAnswering = false;
+  
+  // 禁用所有按钮
+  document.querySelectorAll('.option-btn').forEach(b => b.disabled = true);
+  
+  if (selected === answer) {
+    btn.classList.add('correct');
+    // 击落一架敌机
+    const planes = document.querySelectorAll('.enemy-plane');
+    if (planes.length > 0) {
+      const target = planes[Math.floor(Math.random() * planes.length)];
+      target.classList.add('hit');
+      setTimeout(() => target.remove(), 500);
+    }
+    state.currentEnemy++;
+    
+    setTimeout(() => {
+      if (state.currentEnemy >= ENEMIES_PER_LEVEL) {
+        levelComplete();
+      } else {
+        renderEnemies();
+        showQuestion();
+      }
+    }, 600);
+  } else {
+    btn.classList.add('wrong');
+    state.hp = Math.max(0, state.hp - 10);
+    updateHUD();
+    
+    if (state.hp <= 0) {
+      setTimeout(() => {
+        alert('💔 生命值归零，重新开始这一关...');
+        state.hp = MAX_HP;
+        state.currentEnemy = 0;
+        renderEnemies();
+        updateHUD();
+        showQuestion();
+      }, 500);
+    } else {
+      setTimeout(() => {
+        renderEnemies();
+        showQuestion();
+      }, 600);
+    }
+  }
+}
+
+// ========== 更新HUD ==========
+function updateHUD() {
+  document.getElementById('hudLevel').textContent = `第 ${state.currentLevel} 关`;
+  document.getElementById('hudProgress').textContent = `${state.currentEnemy}/${ENEMIES_PER_LEVEL}`;
+  document.getElementById('hpText').textContent = state.hp;
+  document.getElementById('hpBar').style.width = state.hp + '%';
+}
+
+// ========== 过关 ==========
+function levelComplete() {
+  state.stars[state.currentLevel - 1] = true;
+  
+  if (state.currentLevel >= TOTAL_LEVELS) {
+    // 全部通关 -> 胜利动画
+    document.getElementById('celebration').classList.remove('show');
+    document.getElementById('game').classList.remove('active');
+    showVictory();
+    saveProgress();
+    return;
+  }
+  
+  // 显示庆祝
+  document.getElementById('celebrationSub').textContent = `🎊 第 ${state.currentLevel} 关通关！你消灭了30架敌机！`;
+  document.getElementById('nextBtn').textContent = '下一关 ➜';
+  document.getElementById('nextBtn').onclick = () => {
+    document.getElementById('celebration').classList.remove('show');
+    state.currentLevel++;
+    state.currentEnemy = 0;
+    state.hp = MAX_HP;
+    document.getElementById('game').classList.add('active');
+    renderEnemies();
+    updateHUD();
+    showQuestion();
+  };
+  document.getElementById('celebration').classList.add('show');
+  spawnConfetti();
+  saveProgress();
+}
+
+// ========== 彩纸 ==========
+function spawnConfetti() {
+  const box = document.getElementById('confettiBox');
+  box.innerHTML = '';
+  const colors = ['#ff0000','#ff9800','#ffeb3b','#4caf50','#2196f3','#9c27b0','#e91e63'];
+  for (let i = 0; i < 80; i++) {
+    const c = document.createElement('div');
+    c.className = 'confetti';
+    c.style.left = Math.random() * 100 + '%';
+    c.style.background = colors[Math.floor(Math.random() * colors.length)];
+    c.style.width = (6 + Math.random() * 10) + 'px';
+    c.style.height = (6 + Math.random() * 10) + 'px';
+    c.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+    c.style.animationDuration = (2 + Math.random() * 3) + 's';
+    c.style.animationDelay = Math.random() * 2 + 's';
+    box.appendChild(c);
+  }
+  setTimeout(() => box.innerHTML = '', 5000);
+}
+
+// ========== 通关视频 ==========
+function showVictory() {
+  document.getElementById('victory').classList.add('show');
+  
+  const canvas = document.getElementById('victoryCanvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  
+  // 三架飞机
+  const planes = [
+    { x: -100, y: 150, color: '#ff4444', trail: [] },
+    { x: -100, y: 280, color: '#44ff44', trail: [] },
+    { x: -100, y: 410, color: '#4488ff', trail: [] }
+  ];
+  
+  let frame = 0;
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    frame++;
+    
+    planes.forEach((p, idx) => {
+      // 飞行路径
+      p.x += 3 + Math.sin(frame * 0.02 + idx) * 1.5;
+      p.y += Math.sin(frame * 0.03 + idx * 2) * 0.8;
+      
+      // 彩色喷雾
+      const colors = ['#ff4444','#ff8800','#ffdd00','#44ff44','#00ddff','#8844ff','#ff44ff'];
+      for (let i = 0; i < 5; i++) {
+        const c = colors[Math.floor(Math.random() * colors.length)];
+        ctx.globalAlpha = 0.6;
+        ctx.fillStyle = c;
+        const px = p.x - 20 - Math.random() * 30;
+        const py = p.y - 5 + Math.random() * 10;
+        ctx.beginPath();
+        ctx.arc(px, py, 3 + Math.random() * 6, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      
+      // 飞机
+      ctx.font = '40px sans-serif';
+      ctx.fillText('✈️', p.x, p.y);
+    });
+    
+    if (frame < 400) requestAnimationFrame(animate);
+  }
+  animate();
+}
+
+// ========== 保存进度 ==========
+function saveProgress() {
+  localStorage.setItem('mathHeroStars', JSON.stringify(state.stars));
+  localStorage.setItem('mathHeroLevel', state.currentLevel);
+}
+
+function loadProgress() {
+  try {
+    const s = localStorage.getItem('mathHeroStars');
+    if (s) state.stars = JSON.parse(s);
+    const l = localStorage.getItem('mathHeroLevel');
+    if (l) state.currentLevel = parseInt(l);
+  } catch(e) {}
+}
+
+// ========== 首页渲染 ==========
+function renderHome() {
+  loadProgress();
+  const grid = document.getElementById('levelGrid');
+  grid.innerHTML = '';
+  
+  const levelNames = ['加法入门', '减法挑战', '混合运算', '进位加法', '退位减法'];
+  const levelIcons = ['🌻', '🌟', '🏆', '🚀', '👑'];
+  
+  for (let i = 0; i < TOTAL_LEVELS; i++) {
+    const btn = document.createElement('div');
+    btn.className = 'level-btn';
+    
+    const unlocked = i === 0 || state.stars[i - 1];
+    if (!unlocked) btn.classList.add('locked');
+    
+    const starCount = state.stars[i] ? '⭐' : '☆';
+    
+    btn.innerHTML = `
+      <div>
+        <div class="level-num">${levelIcons[i]} 第${i+1}关</div>
+        <div class="level-enemies">${levelNames[i]} · ${ENEMIES_PER_LEVEL}架敌机</div>
+      </div>
+      <div class="stars">${starCount}</div>
+    `;
+    
+    btn.onclick = () => {
+      if (!unlocked) { alert('🔒 请先通过上一关！'); return; }
+      state.currentLevel = i + 1;
+      state.currentEnemy = 0;
+      state.hp = MAX_HP;
+      document.getElementById('home').classList.remove('active');
+      document.getElementById('game').classList.add('active');
+      renderEnemies();
+      updateHUD();
+      showQuestion();
+    };
+    grid.appendChild(btn);
+  }
+}
+
+// ========== 重置 ==========
+document.getElementById('restartBtn').onclick = () => {
+  document.getElementById('victory').classList.remove('show');
+  state.currentLevel = 1;
+  state.currentEnemy = 0;
+  state.hp = MAX_HP;
+  state.stars = [false, false, false, false, false];
+  localStorage.removeItem('mathHeroStars');
+  localStorage.removeItem('mathHeroLevel');
+  renderHome();
+  document.getElementById('home').classList.add('active');
+};
+
+// ========== 生成星星背景 ==========
+function createStars() {
+  const bg = document.getElementById('starsBg');
+  for (let i = 0; i < 60; i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    s.style.left = Math.random() * 100 + '%';
+    s.style.top = Math.random() * 100 + '%';
+    s.style.animationDelay = Math.random() * 3 + 's';
+    s.style.width = (1 + Math.random() * 2) + 'px';
+    s.style.height = s.style.width;
+    bg.appendChild(s);
+  }
+}
+
+// ========== 初始化 ==========
+createStars();
+renderHome();
+</script>
+</body>
+</html>
